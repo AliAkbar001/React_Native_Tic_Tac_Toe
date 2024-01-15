@@ -1,9 +1,20 @@
-import React, { PropsWithChildren, useState } from 'react';
-import { Button, FlatList, Image, Pressable, SafeAreaView, StyleSheet, Text, View} from 'react-native';
+import React, { PropsWithChildren, useEffect, useState } from 'react';
+import { Button, FlatList, Image, Pressable, SafeAreaView, StyleSheet, Text, Vibration, View} from 'react-native';
 import { boxesList } from './constants';
 import Circle from './assets/Circle.png';
 import Tick from './assets/Tick.png';
+import ButtonClick from './assets/ButtonClick.mp3';
+import BoxClick from './assets/BoxClick.mp3';
+import Draw from './assets/Draw.mp3';
+import Success from './assets/Success.mp3';
 import CrossPlaceholder from './assets/cross-placeholder.png';
+import Sound from 'react-native-sound'
+
+Sound.setCategory('Playback')
+const clickSound = new Sound(ButtonClick, Sound.MAIN_BUNDLE)
+const drawSound = new Sound(Draw, Sound.MAIN_BUNDLE)
+const successSound = new Sound(Success, Sound.MAIN_BUNDLE)
+const boxSound = new Sound(BoxClick, Sound.MAIN_BUNDLE)
 
 type PropsTypes = PropsWithChildren<{
   boxNumber: number,
@@ -16,7 +27,23 @@ function App(): React.JSX.Element {
   const [status, setStatus] = useState<String>('Start the game.')
   const [countStep, setCountStep] = useState<number | null>(null)
 
+  useEffect(() => {
+    clickSound.setVolume(10);
+    drawSound.setVolume(10);
+    successSound.setVolume(10);
+    boxSound.setVolume(10);
+    return () => {
+      clickSound.release();
+      drawSound.release();
+      successSound.release();
+      boxSound.release();
+    };
+  }, []);
+
   function GetBoxValue(item: Box){
+    Vibration.vibrate(10 * 6)
+    boxSound.stop()
+    boxSound.play()
     if(track[item.boxNumber].mark === null){
       const temp = track;
       let tempPlayer = player;
@@ -28,7 +55,7 @@ function App(): React.JSX.Element {
         temp[item.boxNumber].mark = false;
         tempPlayer = 'First';
       }
-      if(countStep !== null && ((temp[4].mark !== null && 
+      if(countStep >= 3 && ((temp[4].mark !== null && 
         ((temp[2].mark === temp[4].mark && temp[4].mark === temp[6].mark) ||
         (temp[0].mark === temp[4].mark && temp[4].mark === temp[8].mark) ||
         (temp[1].mark === temp[4].mark && temp[4].mark === temp[7].mark) ||
@@ -40,8 +67,10 @@ function App(): React.JSX.Element {
       ){
         setStatus(player + ' player win the game.');
         tempPlayer = player;
+        successSound.play()
       }else if(countStep === 7){
         setStatus('Game is draw.');
+        drawSound.play()
       }else{
         setStatus(tempPlayer + ' player');
       }
@@ -51,10 +80,13 @@ function App(): React.JSX.Element {
   }
 
   function reset(){
+    clickSound.play()
     setTrack(JSON.parse(JSON.stringify(boxesList)));
     setPlayer('First');
     setStatus('Start the game.');
     setCountStep(null);
+    drawSound.stop();
+    successSound.stop();
   }
   function BoxLayout({...item}: PropsTypes): React.JSX.Element {
     return(
